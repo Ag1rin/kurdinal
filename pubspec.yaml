@@ -1,7 +1,7 @@
 name: kurdinal
-description: "A new Flutter project."
+description: "Kurdish Words Uploader - Upload Kurdish words to Arweave for permanent storage"
 publish_to: 'none'
-version: 0.1.0
+version: 1.0.0
 
 environment:
   sdk: ^3.9.2
@@ -9,11 +9,35 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
+  # State Management
+  flutter_riverpod: ^2.6.1
+  
+  # Arweave Integration
+  arweave: ^0.1.0
+  
+  # File Operations
+  file_picker: ^8.1.4
+  path_provider: ^2.1.4
+  
+  # JSON Serialization
+  json_annotation: ^4.9.0
+  
+  # Security
+  flutter_secure_storage: ^9.2.2
+  
+  # HTTP
+  http: ^1.2.2
+  
+  # Utilities
+  uuid: ^4.5.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  build_runner: ^2.4.13
+  json_serializable: ^6.8.0
 
 flutter:
   uses-material-design: true
