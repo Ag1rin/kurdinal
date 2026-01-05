@@ -13,8 +13,8 @@ dependencies:
   # State Management
   flutter_riverpod: ^2.6.1
   
-  # Arweave Integration
-  arweave: ^0.1.0
+  # Arweave Integration - using direct API calls
+  # Note: If arweave-dart package is available, you can use it instead
   
   # File Operations
   file_picker: ^8.1.4
@@ -31,6 +31,10 @@ dependencies:
   
   # Utilities
   uuid: ^4.5.1
+  
+  # Crypto
+  crypto: ^3.0.5
+  pointycastle: ^3.9.1
 
 dev_dependencies:
   flutter_test:
