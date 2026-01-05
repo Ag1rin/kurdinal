@@ -200,6 +200,9 @@ class ArweaveService {
   }
 
   /// Sign data with RSA private key using RSA-PSS
+  /// Note: This is a simplified implementation. For production use, consider using
+  /// the arweave-dart package from GitHub (CDDelta/arweave-dart) or implement
+  /// proper RSA-PSS signing according to Arweave's specifications.
   Future<Uint8List> _rsaSign(
     List<int> data,
     String n,
@@ -212,9 +215,12 @@ class ArweaveService {
     String qi,
   ) async {
     try {
+      // Hash the data with SHA-256
+      final hash = sha256.convert(data);
+      final hashBytes = Uint8List.fromList(hash.bytes);
+
       // Decode base64url components
       final nBytes = _base64UrlDecode(n);
-      final eBytes = _base64UrlDecode(e);
       final dBytes = _base64UrlDecode(d);
       final pBytes = _base64UrlDecode(p);
       final qBytes = _base64UrlDecode(q);
@@ -222,9 +228,8 @@ class ArweaveService {
       final dqBytes = _base64UrlDecode(dq);
       final qiBytes = _base64UrlDecode(qi);
 
-      // Create RSA private key
+      // Create RSA private key BigInts
       final nBigInt = _bytesToBigInt(nBytes);
-      final eBigInt = _bytesToBigInt(eBytes);
       final dBigInt = _bytesToBigInt(dBytes);
       final pBigInt = _bytesToBigInt(pBytes);
       final qBigInt = _bytesToBigInt(qBytes);
@@ -232,43 +237,33 @@ class ArweaveService {
       final dqBigInt = _bytesToBigInt(dqBytes);
       final qiBigInt = _bytesToBigInt(qiBytes);
 
-      // Hash the data
-      final hash = sha256.convert(data);
-      final hashBytes = hash.bytes;
-
-      // Create RSA private key parameters
-      final rsaParams = crypto.RSAPrivateKey(
-        nBigInt,
-        dBigInt,
-      );
-      rsaParams.privateExponent = dBigInt;
+      // Create RSA private key
+      final rsaParams = crypto.RSAPrivateKey(nBigInt, dBigInt);
       rsaParams.p = pBigInt;
       rsaParams.q = qBigInt;
       rsaParams.dP = dpBigInt;
       rsaParams.dQ = dqBigInt;
       rsaParams.qInv = qiBigInt;
 
-      // Create RSA engine
-      final signer = crypto.PKCS1Encoding(crypto.RSASigner())
-        ..init(true, crypto.PrivateKeyParameter<crypto.RSAPrivateKey>(rsaParams));
+      // Create signer with RSA-PSS
+      final signer = crypto.PSSSigner(
+        crypto.RSASigner()
+          ..init(true, crypto.PrivateKeyParameter<crypto.RSAPrivateKey>(rsaParams)),
+      )..init(true, crypto.PrivateKeyParameter<crypto.RSAPrivateKey>(rsaParams));
 
-      // Sign with SHA-256
-      final signature = signer.generateSignature(
-        crypto.PaddedDigestSignatureParameters(
-          crypto.RSASignatureParameters(null, crypto.SHA256Digest()),
-          hashBytes,
-        ),
-      ) as crypto.Signature;
+      // Sign the hash
+      signer.reset();
+      signer.update(hashBytes);
+      final signature = signer.generateSignature() as crypto.Signature;
 
       return Uint8List.fromList(signature.bytes);
     } catch (e) {
-      // Fallback: Use a simpler approach for Arweave
-      // Arweave uses a specific signing format
-      final hash = sha256.convert(data);
-      
-      // For Arweave, we need to use the actual RSA signing
-      // This is a simplified version - in production, use arweave-dart package
-      throw Exception('RSA signing failed: $e. Please ensure you have a valid Arweave wallet.');
+      // If signing fails, throw a helpful error
+      throw Exception(
+        'RSA signing failed: $e\n'
+        'Note: For production use, please integrate a proper Arweave SDK.\n'
+        'Recommended: arweave-dart package from GitHub (CDDelta/arweave-dart)',
+      );
     }
   }
 
