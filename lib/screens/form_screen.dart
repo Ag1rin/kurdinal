@@ -35,7 +35,6 @@ class _FormScreenState extends ConsumerState<FormScreen> {
 
   void _addMeaningField() {
     setState(() {
-      final languageController = TextEditingController();
       final meaningController = TextEditingController();
       _meaningControllers.add(
         MapEntry('', meaningController),
