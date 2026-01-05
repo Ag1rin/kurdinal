@@ -62,22 +62,26 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           ref.read(wordsProvider.notifier).addWords(words);
 
           // Show preview
-          showDialog(
-            context: context,
-            builder: (context) => PreviewDialog(words: words),
-          );
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => PreviewDialog(words: words),
+            );
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${words.length} word(s) imported successfully')),
-          );
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('${words.length} word(s) imported successfully')),
+            );
+          }
         } catch (e) {
-          setState(() {
-            _status = 'Error parsing JSON: $e';
-            _importedWords = null;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error parsing JSON: $e')),
-          );
+          if (mounted) {
+            setState(() {
+              _status = 'Error parsing JSON: $e';
+              _importedWords = null;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error parsing JSON: $e')),
+            );
+          }
         }
       } else {
         setState(() {
@@ -85,13 +89,15 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         });
       }
     } catch (e) {
-      setState(() {
-        _status = 'Error: $e';
-        _importedWords = null;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        setState(() {
+          _status = 'Error: $e';
+          _importedWords = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
