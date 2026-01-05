@@ -17,7 +17,6 @@ class ImportScreen extends ConsumerStatefulWidget {
 
 class _ImportScreenState extends ConsumerState<ImportScreen> {
   String _status = 'No file selected';
-  List<KurdishWord>? _importedWords;
 
   Future<void> _importJsonFile() async {
     try {
@@ -54,7 +53,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           }
 
           setState(() {
-            _importedWords = words;
             _status = '${words.length} word(s) imported successfully';
           });
 
@@ -76,7 +74,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           if (mounted) {
             setState(() {
               _status = 'Error parsing JSON: $e';
-              _importedWords = null;
             });
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Error parsing JSON: $e')),
@@ -92,7 +89,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       if (mounted) {
         setState(() {
           _status = 'Error: $e';
-          _importedWords = null;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),

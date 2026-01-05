@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/kurdish_word.dart';
-import '../services/arweave_service.dart';
 import '../providers/arweave_provider.dart';
 
 /// Screen for uploading words to Arweave
@@ -18,7 +17,6 @@ class UploadScreen extends ConsumerStatefulWidget {
 }
 
 class _UploadScreenState extends ConsumerState<UploadScreen> {
-  String _status = 'Ready to upload';
   bool _isUploading = false;
   String? _transactionId;
   String? _viewUrl;
@@ -28,7 +26,6 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     try {
       ref.read(walletStatusProvider.notifier).state = WalletStatus.loading;
       setState(() {
-        _status = 'Selecting wallet file...';
       });
 
       final result = await FilePicker.platform.pickFiles(
@@ -46,20 +43,18 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
 
         ref.read(walletStatusProvider.notifier).state = WalletStatus.loaded;
         setState(() {
-          _status = 'Wallet loaded successfully';
         });
       } else {
         ref.read(walletStatusProvider.notifier).state = WalletStatus.notLoaded;
         setState(() {
-          _status = 'Wallet selection cancelled';
         });
       }
     } catch (e) {
       ref.read(walletStatusProvider.notifier).state = WalletStatus.error;
       setState(() {
-        _status = 'Error loading wallet: $e';
         _error = e.toString();
       });
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
@@ -78,7 +73,6 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
 
     setState(() {
       _isUploading = true;
-      _status = 'Preparing upload...';
       _error = null;
     });
 
@@ -105,7 +99,6 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
         tags: tags,
         onProgress: (progress) {
           setState(() {
-            _status = progress;
           });
         },
       );
@@ -113,16 +106,15 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
       setState(() {
         _isUploading = false;
         if (result.success) {
-          _status = 'Upload successful!';
           _transactionId = result.transactionId;
           _viewUrl = result.viewUrl;
         } else {
-          _status = 'Upload failed';
           _error = result.error;
         }
       });
 
       if (result.success) {
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Upload successful!'),
@@ -130,6 +122,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
           ),
         );
       } else {
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Upload failed: ${result.error}'),
@@ -140,9 +133,9 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     } catch (e) {
       setState(() {
         _isUploading = false;
-        _status = 'Upload failed';
         _error = e.toString();
       });
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),
