@@ -18,7 +18,10 @@ class WordsNotifier extends StateNotifier<List<KurdishWord>> {
   }
 
   void removeWord(int index) {
-    state = state.where((_, i) => i != index).toList();
+    state = state.asMap().entries
+        .where((entry) => entry.key != index)
+        .map((entry) => entry.value)
+        .toList();
   }
 
   void clearWords() {
