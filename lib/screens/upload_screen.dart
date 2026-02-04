@@ -6,6 +6,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/kurdish_word.dart';
 import '../providers/arweave_provider.dart';
+import '../services/storage_service.dart';
+import '../utils/error_handler.dart';
 
 /// Screen for uploading words to Arweave
 class UploadScreen extends ConsumerStatefulWidget {
@@ -63,7 +65,11 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
       });
       // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(
+          content: Text(ErrorHandler.getErrorMessage(e)),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
       );
     }
   }
@@ -138,6 +144,15 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
         if (result.success) {
           _transactionId = result.transactionId;
           _viewUrl = result.viewUrl;
+          
+          // Save transaction to history
+          final storageService = StorageService();
+          storageService.saveTransaction(
+            transactionId: result.transactionId!,
+            viewUrl: result.viewUrl!,
+            wordCount: widget.words.length,
+            timestamp: DateTime.now(),
+          );
         } else {
           _error = result.error;
         }
@@ -169,8 +184,15 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
       // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: Text(ErrorHandler.getErrorMessage(e)),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+          action: ErrorHandler.isRetryable(e)
+              ? SnackBarAction(
+                  label: 'Retry',
+                  onPressed: _uploadToArweave,
+                )
+              : null,
         ),
       );
     }
