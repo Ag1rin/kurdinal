@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import '../models/kurdish_word.dart';
 import '../providers/words_provider.dart';
 import '../widgets/preview_dialog.dart';
+import '../utils/error_handler.dart';
 
 /// Screen for importing Kurdish words from JSON file
 class ImportScreen extends ConsumerStatefulWidget {
@@ -76,7 +77,11 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
               _status = 'Error parsing JSON: $e';
             });
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error parsing JSON: $e')),
+              SnackBar(
+                content: Text(ErrorHandler.getErrorMessage(e)),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 5),
+              ),
             );
           }
         }
@@ -91,7 +96,11 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           _status = 'Error: $e';
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text(ErrorHandler.getErrorMessage(e)),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }
