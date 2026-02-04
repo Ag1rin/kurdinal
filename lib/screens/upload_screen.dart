@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/kurdish_word.dart';
 import '../providers/arweave_provider.dart';
 
@@ -21,6 +22,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
   String? _transactionId;
   String? _viewUrl;
   String? _error;
+  String? _progressMessage;
 
   Future<void> _loadWallet() async {
     try {
@@ -74,6 +76,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     setState(() {
       _isUploading = true;
       _error = null;
+      _progressMessage = 'Initializing...';
     });
 
     try {
@@ -99,12 +102,14 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
         tags: tags,
         onProgress: (progress) {
           setState(() {
+            _progressMessage = progress;
           });
         },
       );
 
       setState(() {
         _isUploading = false;
+        _progressMessage = null;
         if (result.success) {
           _transactionId = result.transactionId;
           _viewUrl = result.viewUrl;
@@ -133,6 +138,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     } catch (e) {
       setState(() {
         _isUploading = false;
+        _progressMessage = null;
         _error = e.toString();
       });
       // ignore: use_build_context_synchronously
@@ -242,14 +248,18 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
             ),
             const SizedBox(height: 24),
             if (_isUploading)
-              const Card(
+              Card(
                 child: Padding(
-                  padding: EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('Uploading to Arweave...'),
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text(
+                        _progressMessage ?? 'Uploading to Arweave...',
+                        style: const TextStyle(fontSize: 16),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 ),
@@ -290,8 +300,17 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
                         const Text('View on Arweave:'),
                         const SizedBox(height: 8),
                         InkWell(
-                          onTap: () {
-                            // Open URL in browser
+                          onTap: () async {
+                            final uri = Uri.parse(_viewUrl!);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            } else {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Could not open $uri')),
+                                );
+                              }
+                            }
                           },
                           child: Text(
                             _viewUrl!,
