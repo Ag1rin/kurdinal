@@ -23,6 +23,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
   String? _viewUrl;
   String? _error;
   String? _progressMessage;
+  String? _walletBalance;
 
   Future<void> _loadWallet() async {
     try {
@@ -43,8 +44,12 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
         final arweaveService = ref.read(arweaveServiceProvider);
         await arweaveService.loadWalletFromFile(file);
 
+        // Load balance
+        final balance = await arweaveService.getWalletBalance();
+        
         ref.read(walletStatusProvider.notifier).state = WalletStatus.loaded;
         setState(() {
+          _walletBalance = balance;
         });
       } else {
         ref.read(walletStatusProvider.notifier).state = WalletStatus.notLoaded;
@@ -76,7 +81,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     setState(() {
       _isUploading = true;
       _error = null;
-      _progressMessage = 'Initializing...';
+      _progressMessage = 'Checking wallet balance...';
     });
 
     try {
@@ -86,6 +91,26 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
         jsonData = jsonEncode(widget.words.first.toJson());
       } else {
         jsonData = jsonEncode(widget.words.map((w) => w.toJson()).toList());
+      }
+
+      // Check balance before uploading
+      final dataSize = jsonData.length;
+      final hasBalance = await arweaveService.hasSufficientBalance(dataSize);
+      
+      if (!hasBalance) {
+        final balance = await arweaveService.getWalletBalance();
+        setState(() {
+          _isUploading = false;
+          _progressMessage = null;
+          _error = 'Insufficient balance. Current balance: ${balance ?? "Unknown"} AR';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Insufficient balance. Current: ${balance ?? "Unknown"} AR'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
       }
 
       // Create tags
@@ -230,6 +255,16 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
                               'Address: ${arweaveService.getWalletAddress() ?? 'Unknown'}',
                               style: const TextStyle(fontSize: 12),
                             ),
+                            if (_walletBalance != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                'Balance: $_walletBalance AR',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       )
