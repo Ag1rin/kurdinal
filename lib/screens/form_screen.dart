@@ -6,7 +6,10 @@ import '../widgets/preview_dialog.dart';
 
 /// Screen for manually entering Kurdish words with dynamic fields
 class FormScreen extends ConsumerStatefulWidget {
-  const FormScreen({super.key});
+  final KurdishWord? editWord;
+  final int? editIndex;
+
+  const FormScreen({super.key, this.editWord, this.editIndex});
 
   @override
   ConsumerState<FormScreen> createState() => _FormScreenState();
@@ -19,6 +22,26 @@ class _FormScreenState extends ConsumerState<FormScreen> {
   
   final List<MapEntry<String, TextEditingController>> _meaningControllers = [];
   final List<MapEntry<String, TextEditingController>> _dialectControllers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.editWord != null) {
+      final word = widget.editWord!;
+      _wordController.text = word.word;
+      _pronunciationController.text = word.pronunciation;
+      
+      for (var entry in word.meanings.entries) {
+        final controller = TextEditingController(text: entry.value);
+        _meaningControllers.add(MapEntry(entry.key, controller));
+      }
+      
+      for (var entry in word.dialects.entries) {
+        final controller = TextEditingController(text: entry.value);
+        _dialectControllers.add(MapEntry(entry.key, controller));
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -142,31 +165,39 @@ class _FormScreenState extends ConsumerState<FormScreen> {
         dialects: dialects,
       );
 
-      ref.read(wordsProvider.notifier).addWord(word);
+      if (widget.editIndex != null) {
+        ref.read(wordsProvider.notifier).updateWord(widget.editIndex!, word);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Word updated!')),
+        );
+        Navigator.pop(context);
+      } else {
+        ref.read(wordsProvider.notifier).addWord(word);
 
-      // Show preview dialog
-      showDialog(
-        context: context,
-        builder: (context) => PreviewDialog(words: [word]),
-      );
+        // Show preview dialog
+        showDialog(
+          context: context,
+          builder: (context) => PreviewDialog(words: [word]),
+        );
 
-      // Clear form
-      _wordController.clear();
-      _pronunciationController.clear();
-      for (var entry in _meaningControllers) {
-        entry.value.clear();
+        // Clear form
+        _wordController.clear();
+        _pronunciationController.clear();
+        for (var entry in _meaningControllers) {
+          entry.value.clear();
+        }
+        for (var entry in _dialectControllers) {
+          entry.value.clear();
+        }
+        setState(() {
+          _meaningControllers.clear();
+          _dialectControllers.clear();
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Word added! Preview shown.')),
+        );
       }
-      for (var entry in _dialectControllers) {
-        entry.value.clear();
-      }
-      setState(() {
-        _meaningControllers.clear();
-        _dialectControllers.clear();
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Word added! Preview shown.')),
-      );
     }
   }
 
@@ -174,7 +205,7 @@ class _FormScreenState extends ConsumerState<FormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manual Entry'),
+        title: Text(widget.editWord != null ? 'Edit Word' : 'Manual Entry'),
         actions: [
           IconButton(
             icon: const Icon(Icons.preview),
