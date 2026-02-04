@@ -15,13 +15,40 @@ class ArweaveService {
   Map<String, dynamic>? _wallet;
   bool get isWalletLoaded => _wallet != null;
 
+  /// Validate JWK wallet format
+  bool _validateWallet(Map<String, dynamic> wallet) {
+    // Required fields for Arweave JWK
+    final requiredFields = ['kty', 'n', 'e', 'd', 'p', 'q', 'dp', 'dq', 'qi'];
+    
+    for (var field in requiredFields) {
+      if (!wallet.containsKey(field) || wallet[field] == null) {
+        return false;
+      }
+    }
+    
+    // Check kty is RSA
+    if (wallet['kty'] != 'RSA') {
+      return false;
+    }
+    
+    return true;
+  }
+
   /// Load wallet from JWK file
   Future<void> loadWalletFromFile(File jwkFile) async {
     try {
       final jsonString = await jwkFile.readAsString();
       final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
+      
+      if (!_validateWallet(jsonData)) {
+        throw Exception('Invalid wallet format. Please ensure it is a valid Arweave JWK file.');
+      }
+      
       _wallet = jsonData;
     } catch (e) {
+      if (e.toString().contains('Invalid wallet format')) {
+        rethrow;
+      }
       throw Exception('Failed to load wallet: $e');
     }
   }
@@ -30,8 +57,16 @@ class ArweaveService {
   Future<void> loadWalletFromJson(String jsonString) async {
     try {
       final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
+      
+      if (!_validateWallet(jsonData)) {
+        throw Exception('Invalid wallet format. Please ensure it is a valid Arweave JWK file.');
+      }
+      
       _wallet = jsonData;
     } catch (e) {
+      if (e.toString().contains('Invalid wallet format')) {
+        rethrow;
+      }
       throw Exception('Failed to load wallet: $e');
     }
   }
@@ -51,6 +86,57 @@ class ArweaveService {
       return null;
     } catch (e) {
       return null;
+    }
+  }
+
+  /// Get wallet balance in AR
+  Future<String?> getWalletBalance() async {
+    if (_wallet == null) return null;
+    
+    try {
+      final address = getWalletAddress();
+      if (address == null) return null;
+      
+      // Get balance from Arweave API
+      final response = await http.get(
+        Uri.parse('$_arweaveApiUrl/wallet/$address/balance'),
+      );
+      
+      if (response.statusCode == 200) {
+        // Balance is returned in Winston (smallest unit), convert to AR
+        final winston = BigInt.parse(response.body.trim());
+        final ar = winston / BigInt.from(1000000000000); // 1 AR = 10^12 Winston
+        return ar.toString();
+      }
+      
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Check if wallet has sufficient balance for transaction
+  Future<bool> hasSufficientBalance(int dataSizeBytes) async {
+    try {
+      final balanceStr = await getWalletBalance();
+      if (balanceStr == null) return false;
+      
+      // Get transaction cost
+      final rewardResponse = await http.get(
+        Uri.parse('$_arweaveApiUrl/price/$dataSizeBytes'),
+      );
+      
+      if (rewardResponse.statusCode == 200) {
+        final requiredWinston = BigInt.parse(rewardResponse.body.trim());
+        final balanceWinston = (BigInt.parse(balanceStr) * BigInt.from(1000000000000));
+        
+        // Check if balance is sufficient (with some buffer)
+        return balanceWinston >= requiredWinston;
+      }
+      
+      return false;
+    } catch (e) {
+      return false;
     }
   }
 
