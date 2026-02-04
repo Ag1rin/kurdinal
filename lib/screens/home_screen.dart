@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'form_screen.dart';
 import 'import_screen.dart';
+import 'words_list_screen.dart';
+import 'transactions_history_screen.dart';
+import 'stats_screen.dart';
+import '../providers/theme_provider.dart';
+import '../providers/words_provider.dart';
 
 /// Home screen with mode selection for manual entry or JSON import
 class HomeScreen extends ConsumerWidget {
@@ -14,6 +19,58 @@ class HomeScreen extends ConsumerWidget {
         title: const Text('Kurdish Words Uploader'),
         centerTitle: true,
         elevation: 2,
+        actions: [
+          Consumer(
+            builder: (context, ref, child) {
+              final words = ref.watch(wordsProvider);
+              return IconButton(
+                icon: const Icon(Icons.bar_chart),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const StatsScreen(),
+                    ),
+                  );
+                },
+                tooltip: 'Statistics',
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TransactionsHistoryScreen(),
+                ),
+              );
+            },
+            tooltip: 'Transaction History',
+          ),
+          Consumer(
+            builder: (context, ref, child) {
+              final themeMode = ref.watch(themeModeProvider);
+              return IconButton(
+                icon: Icon(
+                  themeMode == ThemeMode.dark
+                      ? Icons.light_mode
+                      : Icons.dark_mode,
+                ),
+                onPressed: () {
+                  final notifier = ref.read(themeModeProvider.notifier);
+                  notifier.setTheme(
+                    themeMode == ThemeMode.dark
+                        ? ThemeMode.light
+                        : ThemeMode.dark,
+                  );
+                },
+                tooltip: 'Toggle Theme',
+              );
+            },
+          ),
+        ],
       ),
       body: Center(
         child: Padding(
@@ -74,6 +131,29 @@ class HomeScreen extends ConsumerWidget {
                   },
                   icon: const Icon(Icons.upload_file),
                   label: const Text('Import JSON'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    textStyle: const TextStyle(fontSize: 18),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: 300,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const WordsListScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.list),
+                  label: Consumer(
+                    builder: (context, ref, child) {
+                      final words = ref.watch(wordsProvider);
+                      return Text('Words List (${words.length})');
+                    },
+                  ),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     textStyle: const TextStyle(fontSize: 18),
