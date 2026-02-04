@@ -21,11 +21,21 @@ A Flutter desktop application for managing and uploading Kurdish words to Arweav
 
 ## Prerequisites
 
-- Flutter SDK (latest stable version)
+- Flutter SDK (3.24.0 or higher)
 - Dart SDK (3.9.2 or higher)
 - Windows/macOS/Linux for desktop support
 
-## Installation
+## Download
+
+### Latest Release
+
+Download the latest release from [GitHub Releases](https://github.com/YOUR_USERNAME/kurdinal/releases):
+
+- **Windows**: Download `kurdinal-windows-*.zip`, extract and run `kurdinal.exe`
+- **macOS**: Download `kurdinal-macos-*.tar.gz`, extract and move `kurdinal.app` to Applications
+- **Linux**: Download `kurdinal-linux-*.tar.gz`, extract and run `./kurdinal`
+
+## Installation (Development)
 
 1. Clone the repository:
 ```bash
