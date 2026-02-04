@@ -1,0 +1,41 @@
+{
+  "@@locale": "fa",
+  "appTitle": "آپلودر کلمات کردی",
+  "manualEntry": "ورود دستی",
+  "importJson": "وارد کردن JSON",
+  "wordsList": "لیست کلمات",
+  "transactionHistory": "تاریخچه تراکنش‌ها",
+  "uploadToArweave": "آپلود به Arweave",
+  "saveWord": "ذخیره کلمه",
+  "updateWord": "به‌روزرسانی کلمه",
+  "editWord": "ویرایش کلمه",
+  "deleteWord": "حذف کلمه",
+  "searchWords": "جستجوی کلمات...",
+  "noWords": "هنوز کلمه‌ای وجود ندارد",
+  "addFirstWord": "افزودن اولین کلمه",
+  "totalWords": "مجموع: {count} کلمه",
+  "@totalWords": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "walletLoaded": "کیف پول بارگذاری شد",
+  "loadWallet": "بارگذاری کیف پول (JWK)",
+  "balance": "موجودی: {balance} AR",
+  "@balance": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadSuccessful": "آپلود موفقیت‌آمیز بود!",
+  "uploadFailed": "آپلود ناموفق",
+  "error": "خطا",
+  "cancel": "لغو",
+  "ok": "تأیید",
+  "retry": "تلاش مجدد"
+}
+

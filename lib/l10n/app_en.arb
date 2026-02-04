@@ -1,0 +1,44 @@
+{
+  "@@locale": "en",
+  "appTitle": "Kurdish Words Uploader",
+  "@appTitle": {
+    "description": "The application title"
+  },
+  "manualEntry": "Manual Entry",
+  "importJson": "Import JSON",
+  "wordsList": "Words List",
+  "transactionHistory": "Transaction History",
+  "uploadToArweave": "Upload to Arweave",
+  "saveWord": "Save Word",
+  "updateWord": "Update Word",
+  "editWord": "Edit Word",
+  "deleteWord": "Delete Word",
+  "searchWords": "Search words...",
+  "noWords": "No words yet",
+  "addFirstWord": "Add First Word",
+  "totalWords": "Total: {count} word(s)",
+  "@totalWords": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "walletLoaded": "Wallet Loaded",
+  "loadWallet": "Load Wallet (JWK)",
+  "balance": "Balance: {balance} AR",
+  "@balance": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadSuccessful": "Upload successful!",
+  "uploadFailed": "Upload failed",
+  "error": "Error",
+  "cancel": "Cancel",
+  "ok": "OK",
+  "retry": "Retry"
+}
+
