@@ -10,7 +10,7 @@ jobs:
   test:
     name: Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -26,8 +26,7 @@ jobs:
           flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
-        continue-on-error: false
-        timeout-minutes: 20
+        timeout-minutes: 45
 
       - name: Get dependencies
         run: flutter pub get
@@ -52,7 +51,7 @@ jobs:
   build-check:
     name: Build Check
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     
     steps:
       - name: Checkout code
@@ -64,8 +63,7 @@ jobs:
           flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
-        continue-on-error: false
-        timeout-minutes: 20
+        timeout-minutes: 45
 
       - name: Get dependencies
         run: flutter pub get

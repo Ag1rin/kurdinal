@@ -1,4 +1,4 @@
-name: Build and Release
+name: Build and Release (Optimized)
 
 on:
   push:
@@ -25,17 +25,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
+      - name: Setup Flutter with Cache
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
         timeout-minutes: 45
+        continue-on-error: false
+
+      - name: Verify Flutter Installation
+        run: flutter --version
+        timeout-minutes: 2
 
       - name: Get dependencies
         run: flutter pub get
-        timeout-minutes: 10
+        timeout-minutes: 15
 
       - name: Generate localization files
         run: flutter gen-l10n
@@ -43,22 +48,22 @@ jobs:
 
       - name: Generate code
         run: flutter pub run build_runner build --delete-conflicting-outputs
-        timeout-minutes: 10
+        timeout-minutes: 15
 
       - name: Build Windows
         if: matrix.os == 'windows-latest'
         run: flutter build windows --release
-        timeout-minutes: 30
+        timeout-minutes: 45
 
       - name: Build macOS
         if: matrix.os == 'macos-latest'
         run: flutter build macos --release
-        timeout-minutes: 30
+        timeout-minutes: 45
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
         run: flutter build linux --release
-        timeout-minutes: 30
+        timeout-minutes: 45
 
       - name: Create Windows Archive
         if: matrix.os == 'windows-latest'
@@ -66,28 +71,32 @@ jobs:
         run: |
           $version = "${{ github.ref_name }}" -replace '^v', ''
           $archiveName = "kurdinal-windows-$version.zip"
+          if (Test-Path $archiveName) { Remove-Item $archiveName }
           Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath $archiveName -Force
           echo "ARCHIVE_NAME=$archiveName" >> $env:GITHUB_ENV
+        timeout-minutes: 5
 
       - name: Create macOS Archive
         if: matrix.os == 'macos-latest'
         run: |
-          VERSION="${{ github.ref_name }}" | sed 's/^v//'
+          VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
           ARCHIVE_NAME="kurdinal-macos-$VERSION.tar.gz"
           cd build/macos/Build/Products/Release
           tar -czf ../../../../$ARCHIVE_NAME kurdinal.app
           cd ../../../../..
           echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
+        timeout-minutes: 5
 
       - name: Create Linux Archive
         if: matrix.os == 'ubuntu-latest'
         run: |
-          VERSION="${{ github.ref_name }}" | sed 's/^v//'
+          VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
           ARCHIVE_NAME="kurdinal-linux-$VERSION.tar.gz"
           cd build/linux/x64/release/bundle
           tar -czf ../../../../../../$ARCHIVE_NAME *
           cd ../../../../../../..
           echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
+        timeout-minutes: 5
 
       - name: Upload Windows Artifact
         if: matrix.os == 'windows-latest'
@@ -96,6 +105,7 @@ jobs:
           name: windows-release
           path: ${{ env.ARCHIVE_NAME }}
           retention-days: 30
+          if-no-files-found: error
 
       - name: Upload macOS Artifact
         if: matrix.os == 'macos-latest'
@@ -104,6 +114,7 @@ jobs:
           name: macos-release
           path: ${{ env.ARCHIVE_NAME }}
           retention-days: 30
+          if-no-files-found: error
 
       - name: Upload Linux Artifact
         if: matrix.os == 'ubuntu-latest'
@@ -112,11 +123,13 @@ jobs:
           name: linux-release
           path: ${{ env.ARCHIVE_NAME }}
           retention-days: 30
+          if-no-files-found: error
 
   release:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: startsWith(github.ref, 'refs/tags/v')
     
     steps:
@@ -127,10 +140,18 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          pattern: '*-release'
+          merge-multiple: false
 
       - name: Get version
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: List artifacts
+        run: |
+          echo "Artifacts structure:"
+          find artifacts -type f || true
+          ls -la artifacts/ || true
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -167,9 +188,9 @@ jobs:
             ### Changes
             See [CHANGELOG.md](CHANGELOG.md) for details.
           files: |
-            artifacts/windows-release/*
-            artifacts/macos-release/*
-            artifacts/linux-release/*
+            artifacts/windows-release/kurdinal-windows-*.zip
+            artifacts/macos-release/kurdinal-macos-*.tar.gz
+            artifacts/linux-release/kurdinal-linux-*.tar.gz
           draft: false
           prerelease: false
         env:
