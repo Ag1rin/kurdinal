@@ -1,4 +1,4 @@
-name: Build and Release
+name: Build and Release Windows
 
 on:
   push:
@@ -7,23 +7,36 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag (e.g., v1.0.0)'
-        required: true
+        description: 'Version tag (e.g., v1.0.0) - Leave empty to use tag or pubspec.yaml'
+        required: false
         type: string
 
 jobs:
   build:
-    name: Build for ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 120
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+    name: Build Windows Release
+    runs-on: windows-latest
+    timeout-minutes: 90
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Get version from tag or input
+        id: get_version
+        shell: pwsh
+        run: |
+          if ("${{ github.event.inputs.version }}" -ne "") {
+            $version = "${{ github.event.inputs.version }}" -replace '^v', ''
+          } elseif ("${{ github.ref_name }}" -ne "") {
+            $version = "${{ github.ref_name }}" -replace '^v', ''
+          } else {
+            # Get version from pubspec.yaml
+            $pubspec = Get-Content pubspec.yaml | Select-String "version:"
+            $version = ($pubspec -split ":")[1].Trim()
+          }
+          Write-Host "Version: $version"
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+          echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -32,6 +45,10 @@ jobs:
           channel: 'stable'
           cache: true
         timeout-minutes: 45
+
+      - name: Verify Flutter
+        run: flutter --version
+        timeout-minutes: 2
 
       - name: Get dependencies
         run: flutter pub get
@@ -45,133 +62,111 @@ jobs:
         run: flutter pub run build_runner build --delete-conflicting-outputs
         timeout-minutes: 10
 
-      - name: Build Windows
-        if: matrix.os == 'windows-latest'
+      - name: Build Windows Release
         run: flutter build windows --release
         timeout-minutes: 30
 
-      - name: Build macOS
-        if: matrix.os == 'macos-latest'
-        run: flutter build macos --release
-        timeout-minutes: 30
-
-      - name: Build Linux
-        if: matrix.os == 'ubuntu-latest'
-        run: flutter build linux --release
-        timeout-minutes: 30
-
       - name: Create Windows Archive
-        if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}" -replace '^v', ''
+          $version = "${{ env.VERSION }}"
           $archiveName = "kurdinal-windows-$version.zip"
+          if (Test-Path $archiveName) {
+            Remove-Item $archiveName -Force
+          }
           Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath $archiveName -Force
+          Write-Host "Archive created: $archiveName"
+          Write-Host "Archive size: $((Get-Item $archiveName).Length / 1MB) MB"
           echo "ARCHIVE_NAME=$archiveName" >> $env:GITHUB_ENV
+          echo "ARCHIVE_PATH=$archiveName" >> $env:GITHUB_ENV
 
-      - name: Create macOS Archive
-        if: matrix.os == 'macos-latest'
-        run: |
-          VERSION="${{ github.ref_name }}" | sed 's/^v//'
-          ARCHIVE_NAME="kurdinal-macos-$VERSION.tar.gz"
-          cd build/macos/Build/Products/Release
-          tar -czf ../../../../$ARCHIVE_NAME kurdinal.app
-          cd ../../../../..
-          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
-
-      - name: Create Linux Archive
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          VERSION="${{ github.ref_name }}" | sed 's/^v//'
-          ARCHIVE_NAME="kurdinal-linux-$VERSION.tar.gz"
-          cd build/linux/x64/release/bundle
-          tar -czf ../../../../../../$ARCHIVE_NAME *
-          cd ../../../../../../..
-          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
-
-      - name: Upload Windows Artifact
-        if: matrix.os == 'windows-latest'
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-release
           path: ${{ env.ARCHIVE_NAME }}
           retention-days: 30
-
-      - name: Upload macOS Artifact
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-release
-          path: ${{ env.ARCHIVE_NAME }}
-          retention-days: 30
-
-      - name: Upload Linux Artifact
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-release
-          path: ${{ env.ARCHIVE_NAME }}
-          retention-days: 30
+          if-no-files-found: error
 
   release:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
       - name: Get version
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION=$(echo "${{ github.event.inputs.version }}" | sed 's/^v//')
+          elif [ -n "${{ github.ref_name }}" ]; then
+            VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          else
+            VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //' | tr -d ' ')
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Get tag name
+        id: get_tag
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            TAG="${{ github.event.inputs.version }}"
+          elif [ -n "${{ github.ref_name }}" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //' | tr -d ' ')
+            TAG="v$VERSION"
+          fi
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Tag: $TAG"
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-release
+          path: artifacts
+          pattern: '*.zip'
+          merge-multiple: false
+
+      - name: List artifacts
+        run: |
+          echo "Artifacts:"
+          ls -la artifacts/ || true
+          find artifacts -type f || true
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ steps.get_version.outputs.VERSION }}
+          tag_name: ${{ steps.get_tag.outputs.tag }}
+          name: Release ${{ steps.get_version.outputs.version }}
           body: |
-            ## Kurdish Words Uploader ${{ steps.get_version.outputs.VERSION }}
+            ## Kurdish Words Uploader ${{ steps.get_version.outputs.version }}
             
-            ### Downloads
+            ### Download
             
-            - **Windows**: [kurdinal-windows-${{ steps.get_version.outputs.VERSION }}.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/kurdinal-windows-${{ steps.get_version.outputs.VERSION }}.zip)
-            - **macOS**: [kurdinal-macos-${{ steps.get_version.outputs.VERSION }}.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/kurdinal-macos-${{ steps.get_version.outputs.VERSION }}.tar.gz)
-            - **Linux**: [kurdinal-linux-${{ steps.get_version.outputs.VERSION }}.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/kurdinal-linux-${{ steps.get_version.outputs.VERSION }}.tar.gz)
+            - **Windows**: [kurdinal-windows-${{ steps.get_version.outputs.version }}.zip](https://github.com/${{ github.repository }}/releases/download/${{ steps.get_tag.outputs.tag }}/kurdinal-windows-${{ steps.get_version.outputs.version }}.zip)
             
-            ### Installation
+            ### Installation (Windows)
             
-            #### Windows
             1. Download the ZIP file
             2. Extract to a folder
             3. Run `kurdinal.exe`
             
-            #### macOS
-            1. Download the TAR.GZ file
-            2. Extract: `tar -xzf kurdinal-macos-*.tar.gz`
-            3. Move to Applications: `mv kurdinal.app /Applications/`
-            4. Run from Applications
-            
-            #### Linux
-            1. Download the TAR.GZ file
-            2. Extract: `tar -xzf kurdinal-linux-*.tar.gz`
-            3. Run: `./kurdinal`
-            
             ### Changes
             See [CHANGELOG.md](CHANGELOG.md) for details.
           files: |
-            artifacts/windows-release/*
-            artifacts/macos-release/*
-            artifacts/linux-release/*
+            artifacts/*.zip
           draft: false
           prerelease: false
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

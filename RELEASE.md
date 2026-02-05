@@ -33,9 +33,9 @@ This guide explains how to create releases for Kurdinal.
    ```
 
 5. **GitHub Actions will automatically:**
-   - Build for Windows, macOS, and Linux
-   - Create a GitHub Release
-   - Upload all binaries
+   - Build for Windows
+   - Create a GitHub Release with tag
+   - Upload Windows binary
 
 ## Manual Release
 
@@ -49,31 +49,13 @@ If you prefer to build manually:
 
 The archive will be created as `kurdinal-windows-1.0.1.zip`
 
-### macOS
-
-```bash
-chmod +x scripts/build-macos.sh
-./scripts/build-macos.sh 1.0.1
-```
-
-The archive will be created as `kurdinal-macos-1.0.1.tar.gz`
-
-### Linux
-
-```bash
-chmod +x scripts/build-linux.sh
-./scripts/build-linux.sh 1.0.1
-```
-
-The archive will be created as `kurdinal-linux-1.0.1.tar.gz`
-
 ### Create GitHub Release
 
 1. Go to GitHub Releases
 2. Click "Draft a new release"
-3. Choose tag (e.g., `v1.0.1`)
+3. Choose tag (e.g., `v1.0.1`) or create new tag
 4. Fill in release notes
-5. Upload the three archives
+5. Upload the Windows archive
 6. Publish release
 
 ## Version Numbering
@@ -91,7 +73,7 @@ Example: `1.2.3` = Major 1, Minor 2, Patch 3
 - [ ] Update `CHANGELOG.md`
 - [ ] Run tests: `flutter test`
 - [ ] Run analysis: `flutter analyze`
-- [ ] Build and test on all platforms
+- [ ] Build and test on Windows
 - [ ] Create tag and push
 - [ ] Verify GitHub Actions completed successfully
 - [ ] Test downloaded binaries
