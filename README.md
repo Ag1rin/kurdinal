@@ -29,7 +29,7 @@ A Flutter desktop application for managing and uploading Kurdish words to Arweav
 
 ### Latest Release
 
-Download the latest release from [GitHub Releases](https://github.com/YOUR_USERNAME/kurdinal/releases):
+Download the latest release from [GitHub Releases](https://github.com/Ag1rin/kurdinal/releases):
 
 - **Windows**: Download `kurdinal-windows-*.zip`, extract and run `kurdinal.exe`
 - **macOS**: Download `kurdinal-macos-*.tar.gz`, extract and move `kurdinal.app` to Applications
